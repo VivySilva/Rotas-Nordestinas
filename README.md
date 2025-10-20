@@ -35,5 +35,3 @@ rotas-nordestinas/
      npx nodemon server.js
 
 ## Observações
-- O arquivo `projeto.java` não é código Java — renomeie para README.md.
-- Se quiser, eu posso renomear o arquivo e substituir o conteúdo por esse README.md diretamente nos arquivos do projeto.
