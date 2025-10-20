@@ -20,16 +20,24 @@ const LoginForm = () => {
   const [isPrimaryHovered, setIsPrimaryHovered] = useState(false);
   const [isGoogleHovered, setIsGoogleHovered] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const success = login(email, password);
-    if (success) {
-      console.log("Login realizado com sucesso!");
-      closeModal();
-    } else {
-      console.error("Email ou senha incorretos.");
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      const res = await fetch("http://localhost:4000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Erro no login");
+      localStorage.setItem("token", data.token);
+      // atualizar contexto / redirecionar conforme seu AuthContext
+      console.log("Login bem-sucedido", data.user);
+    } catch (err: any) {
+      console.error(err);
+      // mostrar erro na UI
     }
-  };
+  }
 
   // --- Estilos Comuns e Dinâmicos ---
 

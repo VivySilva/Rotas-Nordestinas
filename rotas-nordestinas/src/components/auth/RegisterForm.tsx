@@ -34,24 +34,27 @@ const RegisterForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.senha !== formData.confirmarSenha) {
-      console.error("As senhas não coincidem!");
-      return;
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      const res = await fetch("http://localhost:4000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.nome,
+          email: formData.email,
+          password: formData.senha,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Erro no cadastro");
+      localStorage.setItem("token", data.token);
+      console.log("Cadastro bem-sucedido", data.user);
+    } catch (err: any) {
+      console.error(err);
+      // mostrar erro na UI
     }
-
-    const { confirmarSenha, ...registerData } = formData;
-    const result = register(registerData);
-
-    if (result.success) {
-      console.log(result.message);
-      closeModal();
-      showLoginModal();
-    } else {
-      console.error(result.message);
-    }
-  };
+  }
 
   // --- Estilos Comuns e Dinâmicos ---
 
