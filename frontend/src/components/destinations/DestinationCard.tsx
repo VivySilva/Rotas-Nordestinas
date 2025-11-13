@@ -12,12 +12,12 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destino }) => {
     <Link to={`/destinos/${destino.id}`} className="destination-card-link">
       <div className="destination-card">
         <img
-          src={destino.imagem}
-          alt={`Foto de ${destino.cidade}`}
+          src={destino.urlImagem}
+          alt={`Foto de ${destino.nomeCidade}`}
           className="card-image"
         />
         <div className="card-overlay">
-          <h3 className="card-title">{destino.cidade}</h3>
+          <h3 className="card-title">{destino.nomeCidade}</h3>
         </div>
       </div>
     </Link>

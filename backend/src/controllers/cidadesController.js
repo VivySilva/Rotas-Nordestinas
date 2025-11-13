@@ -4,7 +4,16 @@ exports.listarTodas = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("Cidades")
-      .select("*");
+      .select(`
+        id,
+        nomeCidade,
+        urlImagem,
+        descrição,
+        estado:estadoID (
+          nome,
+          sigla
+        )
+      `);
 
     if (error) {
       console.error("Erro Supabase:", error.message);
