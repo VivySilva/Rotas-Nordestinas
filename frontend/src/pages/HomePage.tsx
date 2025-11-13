@@ -10,8 +10,16 @@ import DestinationsCarousel from "../components/destinations/DestinationsCarouse
 import FeaturesSection from "../components/home/FeaturesSections";
 import ValuesSection from "../components/home/ValuesSection";
 import heroImage from "../assets/images/hero.jpg";
+import { api } from "../services/api.js"; // <-- ✅ importando o axios configurado
 import "./HomePage.css";
 
+interface Destino {
+  id: number;
+  cidade: string;
+  estado: string;
+  imagem?: string;
+  descricao?: string;
+}
 
 const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,14 +29,13 @@ const HomePage = () => {
 
   const location = useLocation();
 
-  // Efeito para rolar a tela quando vindo de outra página
   useEffect(() => {
     async function fetchDestinos() {
       try {
-        const response = await fetch("http://localhost:5000/api/cidades");
-        const data = await response.json();
-        setDestinos(data);
+        const response = await api.get("/cidades"); // ✅ agora usa Axios
+        setDestinos(response.data);
       } catch (err) {
+        console.error(err);
         setError("Erro ao carregar os destinos.");
       } finally {
         setLoading(false);
@@ -45,11 +52,9 @@ const HomePage = () => {
         destino.estado.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    return filtered.reduce((acc, destino) => {
+    return filtered.reduce((acc: Record<string, Destino[]>, destino) => {
       const { estado } = destino;
-      if (!acc[estado]) {
-        acc[estado] = [];
-      }
+      if (!acc[estado]) acc[estado] = [];
       acc[estado].push(destino);
       return acc;
     }, {});
@@ -88,7 +93,6 @@ const HomePage = () => {
         <FeaturesSection />
       </Container>
 
-      {/* A seção "Sobre" precisa ter o ID "sobre" para o scroll funcionar */}
       <div id="sobre">
         <ValuesSection />
       </div>
@@ -107,15 +111,21 @@ const HomePage = () => {
               />
             </div>
 
-            <div className="destinations-list">
-              {Object.entries(groupedDestinos).map(([estado, destinos]) => (
-                <DestinationsCarousel
-                  key={estado}
-                  estado={estado}
-                  destinos={destinos}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <p>Carregando destinos...</p>
+            ) : error ? (
+              <p style={{ color: "red" }}>{error}</p>
+            ) : (
+              <div className="destinations-list">
+                {Object.entries(groupedDestinos).map(([estado, destinos]) => (
+                  <DestinationsCarousel
+                    key={estado}
+                    estado={estado}
+                    destinos={destinos}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         </main>
       </Container>

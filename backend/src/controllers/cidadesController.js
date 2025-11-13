@@ -1,5 +1,24 @@
 const supabase = require("../database/supabaseClient.js");
 
+exports.listarTodas = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("Cidades")
+      .select("*");
+
+    if (error) {
+      console.error("Erro Supabase:", error.message);
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.json(data);
+  } catch (err) {
+    console.error("Erro interno ao listar cidades:", err);
+    res.status(500).json({ error: "Erro interno no servidor." });
+  }
+};
+
+
 exports.buscarPorNome = async (req, res) => {
   try {
     const nome = req.query.nome;
