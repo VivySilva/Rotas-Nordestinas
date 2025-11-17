@@ -11,16 +11,13 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
-
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: any) => {
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
 
-// ---------- CADASTRO ----------
+  // ---------- CADASTRO ----------
   const register = async (data: any) => {
     try {
       const response = await api.post("/auth/register", data);
@@ -33,7 +30,7 @@ export const AuthProvider = ({ children }: any) => {
     }
   };
 
-// ---------- LOGIN ----------
+  // ---------- LOGIN ----------
   const login = async (email: string, senha: string) => {
     try {
       const response = await api.post("/auth/login", { email, senha });
