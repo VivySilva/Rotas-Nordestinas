@@ -6,9 +6,9 @@ import "./DestinationDetailPage.css";
 import { FaUserCircle } from "react-icons/fa";
 import InfoCarousel from "../components/destinations/InfoCarousel";
 import { MapGoogle } from "../components/map/MapGoogle";
-import { api } from "../services/api"; // <-- import do axios configurado
+import { api } from "../services/api";
 
-interface Destino {
+interface Destino { 
   id: string;
   nomeCidade: string;
   urlImagem: string;
