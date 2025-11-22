@@ -6,6 +6,8 @@ import "./DestinationDetailPage.css";
 import { FaUserCircle } from "react-icons/fa";
 import InfoCarousel from "../components/destinations/InfoCarousel";
 import { api } from "../services/api";
+import { LeafletMap } from "../components/map/MapLeaflet";
+import 'leaflet/dist/leaflet.css';
 
 interface Destino { 
   id: string;
@@ -36,7 +38,7 @@ interface CarouselItem {
   url_imagem: string;
 }
 
-const DestinationDetailPage = () => {
+const DestinationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [destino, setDestino] = useState<Destino | null>(null);
 
@@ -44,7 +46,9 @@ const DestinationDetailPage = () => {
   const [pontosTuristicos, setPontosTuristicos] = useState<CarouselItem[]>([]);
   const [atividades, setAtividades] = useState<CarouselItem[]>([]);
   const [dicas, setDicas] = useState<CarouselItem[]>([]);
-  
+
+  const [coordinates, setCoordinates] = useState<[number, number] | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,29 +58,34 @@ const DestinationDetailPage = () => {
       try {
         //Busca dados do destino
         const response = await api.get(`/cidades/${id}`);
-        // console.log("Destino carregado:", response.data);
+        const destinoData = response.data;
+        console.log("Destino carregado:", response.data);
         setDestino(response.data);
-
+        
         //Busca dados de como chegar
         const comoChegarResponse = await api.get(`/como-chegar/${id}`);
         // console.log("Como Chegar carregado:", comoChegarResponse.data);
         setComoChegar(comoChegarResponse.data);
-
+        
         //Busca dados de pontos turísticos
         const pontosTuristicosResponse = await api.get(`/pontos/${id}`);
         // console.log("Pontos Turísticos carregados:", pontosTuristicosResponse.data);
         setPontosTuristicos(pontosTuristicosResponse.data);
-
+        
         //Busca dados de atividades
         const atividadesResponse = await api.get(`/atividades/${id}`);
         // console.log("Atividades carregadas:", atividadesResponse.data);
         setAtividades(atividadesResponse.data);
-
+        
         //Busca dados de dicas
         const dicasResponse = await api.get(`/dicas/${id}`);
         // console.log("Dicas carregadas:", dicasResponse.data);
         setDicas(dicasResponse.data);
-
+        
+        if (destinoData && destinoData.nome && destinoData.estado?.nome) {
+          fetchCoordinates(destinoData.nome, destinoData.estado.nome);
+        }
+        
       } catch (err) {
         console.error("Erro ao buscar destino:", err);
         setError("Destino não encontrado.");
@@ -87,7 +96,21 @@ const DestinationDetailPage = () => {
 
     if (id) fetchDestino();
   }, [id]);
-
+  
+  const fetchCoordinates = async (cidade: string, estado: string) => {
+    try {
+      const query = `${cidade}, ${estado}, Brazil`;
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        setCoordinates([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+      } else {
+        console.warn("A API de geocodificação não encontrou o local:", query);
+      }
+    } catch (error) {
+      console.error("Falha ao buscar coordenadas na API de geocodificação:", error);
+    }
+  };
    // Função para renderizar cada item de "Como Chegar"
   const renderComoChegarItem = (item: ComoChegarItem) => (
     <div key={item.id} className="container-to-arrive">
@@ -185,7 +208,15 @@ const DestinationDetailPage = () => {
           <div className="localization-grid">
             <section className="map-section">
               <h2>Destino</h2>
-              {/* <MapGoogle city={destino.cidade} state={destino.estado} /> */}
+              {coordinates ? (
+                <LeafletMap 
+                  latitude={coordinates[0]} 
+                  longitude={coordinates[1]}
+                  popupText={destino?.nome}
+                />
+                ) : (
+                  <p>Carregando mapa...</p>
+                )}
             </section>
 
             <section className="to-arrive">
