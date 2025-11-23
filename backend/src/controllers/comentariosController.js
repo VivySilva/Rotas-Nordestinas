@@ -6,7 +6,7 @@ exports.adicionar = async (req, res) => {
     const { userId, cidadeId, mensagem } = req.body;
 
     const { data, error } = await supabase
-      .from("Comentarios")
+      .from("comentarios")
       .insert([
         {
           userId: userId,
@@ -30,15 +30,63 @@ exports.listarPorCidade = async (req, res) => {
   try {
     const { cidadeId } = req.params;
 
-    const { data, error } = await supabase
-      .from("Comentarios")
+    const { data: comentarios, error: comentariosError } = await supabase
+      .from("comentarios")
       .select("*")
-      .eq("cidadeId", cidadeId)
+      .eq("cidade_id", cidadeId)
       .order("created_at", { ascending: false });
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (comentariosError) {
+      console.error("Erro Supabase ao listar comentários:", comentariosError);
+      return res.status(400).json({ error: comentariosError.message });
+    }
+    
+    console.log("Comentários recebidos do Supabase:", comentarios);
 
-    return res.json(data);
+
+    if (!comentarios || comentarios.length === 0) {
+      return res.json([]);
+    }
+
+    const userIds = [...new Set(comentarios.map((c) => c.user_id).filter(id => id))];
+    
+    console.log("IDs de usuário extraídos:", userIds);
+
+
+    if (userIds.length === 0) {
+      const comentariosSemUsuario = comentarios.map(c => ({...c, usuario: null}));
+      console.log("Nenhum ID de usuário encontrado, retornando comentários sem usuário:", comentariosSemUsuario);
+      return res.json(comentariosSemUsuario);
+    }
+
+    const { data: usuarios, error: usuariosError } = await supabase
+      .from("usuarios")
+      .select("id, nome")
+      .in("id", userIds);
+
+    if (usuariosError) {
+      console.error("Erro Supabase ao buscar usuários:", usuariosError);
+      const comentariosComUsuarioNull = comentarios.map(c => ({...c, usuario: null}));
+      console.log("Erro ao buscar usuários, retornando comentários com usuário nulo:", comentariosComUsuarioNull);
+      return res.json(comentariosComUsuarioNull);
+    }
+    
+    console.log("Usuários recebidos do Supabase:", usuarios);
+
+
+    const userMap = new Map(usuarios.map((u) => [u.id, u]));
+    console.log("Mapa de usuários criado:", userMap);
+
+
+    const comentariosComUsuario = comentarios.map((comentario) => ({
+      ...comentario,
+      usuario: userMap.get(comentario.user_id) || null,
+    }));
+    
+    console.log("Comentários finais com dados do usuário:", comentariosComUsuario);
+
+
+    return res.json(comentariosComUsuario);
   } catch (err) {
     console.error("Erro ao listar comentários:", err);
     res.status(500).json({ error: "Erro interno no servidor." });
@@ -52,7 +100,7 @@ exports.editar = async (req, res) => {
     const { mensagem } = req.body;
 
     const { data, error } = await supabase
-      .from("Comentarios")
+      .from("comentarios")
       .update({ mensagem })
       .eq("id", id)
       .select();
@@ -74,7 +122,7 @@ exports.deletar = async (req, res) => {
     const { id } = req.params;
 
     const { error } = await supabase
-      .from("Comentarios")
+      .from("comentarios")
       .delete()
       .eq("id", id);
 

@@ -1,8 +1,9 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Container from "../components/layout/Container";
 import Navbar from "../components/layout/Navbar";
 import "./DestinationDetailPage.css";
+import Footer from "../components/layout/Footer";
 import { FaUserCircle } from "react-icons/fa";
 import InfoCarousel from "../components/destinations/InfoCarousel";
 import { api } from "../services/api";
@@ -38,6 +39,18 @@ interface CarouselItem {
   url_imagem: string;
 }
 
+interface Usuario {
+    id: string;
+    nome: string;
+}
+
+interface Comentario {
+    id: number;
+    mensagem: string;
+    created_at: string;
+    usuario: Usuario; 
+}
+
 const DestinationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [destino, setDestino] = useState<Destino | null>(null);
@@ -46,11 +59,29 @@ const DestinationDetailPage: React.FC = () => {
   const [pontosTuristicos, setPontosTuristicos] = useState<CarouselItem[]>([]);
   const [atividades, setAtividades] = useState<CarouselItem[]>([]);
   const [dicas, setDicas] = useState<CarouselItem[]>([]);
+  
+  const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [commentError, setCommentError] = useState('');
+
+  // Substitua pela lógica real de autenticação (Context API, etc.)
+  const [session, setSession] = useState<{ user: { id: string } } | null>({ user: { id: "a9a8b8e4-3b7b-4b4f-8b3b-5b3b3b3b3b3b" } });
 
   const [coordinates, setCoordinates] = useState<[number, number] | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Função para buscar comentários
+  const fetchComments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const response = await api.get(`/comentarios/${id}`);
+      setComentarios(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar comentários:", error);
+    }
+  }, [id]);
 
   // Busca o destino pelo ID vindo da URL
   useEffect(() => {
@@ -59,7 +90,7 @@ const DestinationDetailPage: React.FC = () => {
         //Busca dados do destino
         const response = await api.get(`/cidades/${id}`);
         const destinoData = response.data;
-        console.log("Destino carregado:", response.data);
+        // console.log("Destino carregado:", response.data);
         setDestino(response.data);
         
         //Busca dados de como chegar
@@ -82,10 +113,12 @@ const DestinationDetailPage: React.FC = () => {
         // console.log("Dicas carregadas:", dicasResponse.data);
         setDicas(dicasResponse.data);
         
+        await fetchComments();
+
         if (destinoData && destinoData.nome && destinoData.estado?.nome) {
           fetchCoordinates(destinoData.nome, destinoData.estado.nome);
         }
-        
+
       } catch (err) {
         console.error("Erro ao buscar destino:", err);
         setError("Destino não encontrado.");
@@ -95,8 +128,10 @@ const DestinationDetailPage: React.FC = () => {
     }
 
     if (id) fetchDestino();
-  }, [id]);
+    
+  }, [id, fetchComments]);
   
+  // Função para obter a localização da cidade através da biblioteca Nominatim
   const fetchCoordinates = async (cidade: string, estado: string) => {
     try {
       const query = `${cidade}, ${estado}, Brazil`;
@@ -111,7 +146,8 @@ const DestinationDetailPage: React.FC = () => {
       console.error("Falha ao buscar coordenadas na API de geocodificação:", error);
     }
   };
-   // Função para renderizar cada item de "Como Chegar"
+
+  // Função para renderizar cada item de "Como Chegar"
   const renderComoChegarItem = (item: ComoChegarItem) => (
     <div key={item.id} className="container-to-arrive">
       <div className="title">
@@ -126,6 +162,32 @@ const DestinationDetailPage: React.FC = () => {
       <p>{item.descricao}</p>
     </div>
   );
+
+  // Função para submeter o comentário
+   const handleCommentSubmit = async (e:  React.FormEvent) => {
+    e.preventDefault();
+
+    if (!session || !session.user || !newCommentText.trim() || !id) {
+      setCommentError('Você precisa estar logado e o comentário não pode ser vazio.');
+      return;
+    }
+    setCommentError('');
+
+    try {
+      await api.post('/comentarios', {
+          mensagem: newCommentText,
+          userId: session.user.id, // Corrigido para corresponder ao backend
+          cidadeId: parseInt(id, 10) // Corrigido para corresponder ao backend
+      });
+
+      setNewCommentText('');
+      await fetchComments(); // Re-busca os comentários para exibir o novo
+
+    } catch (err) {
+      console.error('ERRO AO ADICIONAR COMENTÁRIO:', err);
+      setCommentError('Erro ao adicionar comentário. Tente novamente.');
+    }
+  };
 
   if (loading)
     return (
@@ -162,7 +224,7 @@ const DestinationDetailPage: React.FC = () => {
         <p className="sugested_user">Rota sugerida por:</p>
         <div className="user">
           <FaUserCircle size={30} />
-          <p>Viviany Silva</p>
+          <p>{destino.usuario?.nome || "Usuário anônimo"}</p>
         </div>
       </div>
 
@@ -224,9 +286,50 @@ const DestinationDetailPage: React.FC = () => {
               {comoChegar.map(renderComoChegarItem)}
             </section>
           </div>
+          
+          <section className="container_feedbacks">
+            <h2>Feedbacks</h2>
 
+            {session && session.user ? (
+              <form onSubmit={handleCommentSubmit} className="commentForm">
+                <textarea
+                  className="commentInput"
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  placeholder="Adicione seu comentário aqui..."
+                  rows={4}
+                  maxLength={500}
+                ></textarea>
+                {commentError && <p className="commentError">{commentError}</p>}
+                <button type="submit" className="hero-button2">
+                  Enviar Comentário
+                </button>
+              </form>
+            ) : (
+                <p>Faça login para adicionar um comentário.</p>
+            )}
+
+            {comentarios?.length > 0 ? (
+              comentarios.map((comentario) => (
+                <div key={comentario.id} className="user_feedback">
+                  <div className="info_user1">
+                    <FaUserCircle size={45} />
+                    <div>
+                      <h3>{comentario.usuario?.nome || 'Usuário Anônimo'}</h3>
+                      <span>{new Date(comentario.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <p>{comentario.mensagem}</p>
+                </div>
+              ))
+            ) : (
+              <p>Não há comentários ainda. Seja o primeiro a comentar!</p>
+            )}
+          </section>
         </main>
       </Container>
+
+      <Footer />
     </div>
   );
 };
