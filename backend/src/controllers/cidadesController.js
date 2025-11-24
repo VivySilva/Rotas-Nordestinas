@@ -1,21 +1,21 @@
 const supabase = require("../database/supabaseClient.js");
 
+// GET /cidades
 exports.listarTodas = async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from("cidades")
-      .select(
-        `
+      .from("Cidades")
+      .select(`
         id,
-        nome,
-        url_imagem,
+        nomeCidade,
+        urlImagem,
         descricao,
-        estado_id: estados (
+        estados:estadoID (
+          id,
           nome,
           sigla
         )
-      `
-      );
+      `);
 
     if (error) {
       console.error("Erro Supabase:", error.message);
@@ -23,6 +23,7 @@ exports.listarTodas = async (req, res) => {
     }
 
     return res.json(data);
+
   } catch (err) {
     console.error("Erro interno ao listar cidades:", err);
     res.status(500).json({ error: "Erro interno no servidor." });
@@ -35,81 +36,97 @@ exports.buscarPorNome = async (req, res) => {
     const nome = req.query.nome;
 
     const { data, error } = await supabase
-      .from("cidades")
-      .select("*")
-      .ilike("nome", `%${nome}%`);
+      .from("Cidades")
+      .select(`
+        id,
+        nomeCidade,
+        urlImagem,
+        descricao,
+        estados:estadoID (
+          id,
+          nome,
+          sigla
+        )
+      `)
+      .ilike("nomeCidade", `%${nome}%`);
 
     if (error) return res.status(400).json({ error: error.message });
 
     return res.json(data);
+
   } catch (err) {
     console.error("Erro ao buscar por nome:", err);
     res.status(500).json({ error: "Erro interno no servidor." });
   }
 };
 
+
+
+// GET /cidades/estado/:estadoID
 exports.listarPorEstado = async (req, res) => {
   try {
     const { estadoID } = req.params;
 
     const { data, error } = await supabase
-      .from("cidades")
+      .from("Cidades")
       .select("*")
-      .eq("estado_id", estadoID);
+      .eq("estadoID", estadoID);
 
     if (error) return res.status(500).json({ error: error.message });
 
     return res.json(data);
+
   } catch (err) {
     console.error("Erro ao listar por estado:", err);
     res.status(500).json({ error: "Erro interno no servidor." });
   }
 };
 
+
+// GET /cidades/:id
 exports.buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: cidade, error: cidadeError } = await supabase
-      .from("cidades")
-      .select(
-        `
+    const { data: cidade, error } = await supabase
+      .from("Cidades")
+      .select(`
         *,
-        estado:estados (
+        estado:estadoID (
+          id,
           nome,
           sigla
         )
-      `
-      )
+      `)
       .eq("id", id)
       .single();
 
-    if (cidadeError) {
-      console.error("Erro Supabase ao buscar cidade:", cidadeError);
-      return res.status(500).json({ error: cidadeError.message });
+    if (error) {
+      console.error("Erro Supabase ao buscar cidade:", error);
+      return res.status(500).json({ error: error.message });
     }
 
     if (!cidade) {
       return res.status(404).json({ error: "Cidade não encontrada." });
     }
-    
-    if (cidade.usuario_id) {
+
+    // Buscar o usuário criador (se existir)
+    if (cidade.userID) {
       const { data: usuario, error: usuarioError } = await supabase
-        .from("usuarios")
-        .select("nome")
-        .eq("id", cidade.usuario_id)
+        .from("Users")
+        .select("nomeCompleto")
+        .eq("id", cidade.userID)
         .single();
 
-      if (usuarioError) {
-        console.error("Erro Supabase ao buscar usuário:", usuarioError);
-        // Não bloqueia o retorno da cidade se o usuário não for encontrado
-        cidade.usuario = null;
-      } else {
+      if (!usuarioError) {
         cidade.usuario = usuario;
+      } else {
+        cidade.usuario = null;
       }
     }
 
     return res.json(cidade);
+
   } catch (err) {
     console.error("Erro ao buscar cidade por ID:", err);
     res.status(500).json({ error: "Erro interno no servidor." });
