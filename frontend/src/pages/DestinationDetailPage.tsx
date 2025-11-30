@@ -12,7 +12,7 @@ import 'leaflet/dist/leaflet.css';
 
 interface Destino { 
   id: string;
-  nome: string;
+  nomeCidade: string;
   url_imagem: string;
   descricao?: string;
   estado?: {
@@ -21,7 +21,7 @@ interface Destino {
   };
   usuario?: {
     id: string;
-    nome: string;
+    nomeCompleto: string;
   };
 }
 
@@ -39,16 +39,16 @@ interface CarouselItem {
   url_imagem: string;
 }
 
-interface Usuario {
+interface Users {
     id: string;
-    nome: string;
+    nomeCompleto: string;
 }
 
 interface Comentario {
     id: number;
     mensagem: string;
     created_at: string;
-    usuario: Usuario; 
+    usuario: Users; 
 }
 
 const DestinationDetailPage: React.FC = () => {
@@ -115,8 +115,8 @@ const DestinationDetailPage: React.FC = () => {
         
         await fetchComments();
 
-        if (destinoData && destinoData.nome && destinoData.estado?.nome) {
-          fetchCoordinates(destinoData.nome, destinoData.estado.nome);
+        if (destinoData && destinoData.nomeCidade && destinoData.estado?.nome) {
+          fetchCoordinates(destinoData.nomeCidade, destinoData.estado.nome);
         }
 
       } catch (err) {
@@ -217,14 +217,14 @@ const DestinationDetailPage: React.FC = () => {
         className="detail-hero"
         style={{ backgroundImage: `url(${destino.url_imagem})` }}
       >
-        <h1>{destino.nome}</h1>
+        <h1>{destino.nomeCidade}</h1>
       </div>
 
       <div className="flex_area">
         <p className="sugested_user">Rota sugerida por:</p>
         <div className="user">
           <FaUserCircle size={30} />
-          <p>{destino.usuario?.nome || "Usuário anônimo"}</p>
+          <p>{destino.usuario?.nomeCompleto || "Usuário anônimo"}</p>
         </div>
       </div>
 
@@ -274,7 +274,7 @@ const DestinationDetailPage: React.FC = () => {
                 <LeafletMap 
                   latitude={coordinates[0]} 
                   longitude={coordinates[1]}
-                  popupText={destino?.nome}
+                  popupText={destino?.nomeCidade}
                 />
                 ) : (
                   <p>Carregando mapa...</p>
@@ -315,7 +315,7 @@ const DestinationDetailPage: React.FC = () => {
                   <div className="info_user1">
                     <FaUserCircle size={45} />
                     <div>
-                      <h3>{comentario.usuario?.nome || 'Usuário Anônimo'}</h3>
+                      <h3>{comentario.usuario?.nomeCompleto || 'Usuário Anônimo'}</h3>
                       <span>{new Date(comentario.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>

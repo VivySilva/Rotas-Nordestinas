@@ -12,7 +12,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destino }) => {
     <Link to={`/destinos/${destino.id}`} className="destination-card-link">
       <div className="destination-card">
         <img
-          src={destino.urlImagem}
+          src={destino.url_imagem}
           alt={`Foto de ${destino.nomeCidade}`}
           className="card-image"
         />

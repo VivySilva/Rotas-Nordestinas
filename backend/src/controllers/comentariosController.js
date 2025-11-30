@@ -3,14 +3,14 @@ const supabase = require("../database/supabaseClient");
 // Adicionar comentário
 exports.adicionar = async (req, res) => {
   try {
-    const { userId, cidadeId, mensagem } = req.body;
+    const { userID, cidadeId, mensagem } = req.body;
 
     const { data, error } = await supabase
-      .from("comentarios")
+      .from("Comentarios")
       .insert([
         {
-          userId: userId,
-          cidadeId: cidadeId,
+          userID: userId,
+          cidadeID: cidadeId,
           mensagem,
         },
       ])
@@ -31,9 +31,9 @@ exports.listarPorCidade = async (req, res) => {
     const { cidadeId } = req.params;
 
     const { data: comentarios, error: comentariosError } = await supabase
-      .from("comentarios")
+      .from("Comentarios")
       .select("*")
-      .eq("cidade_id", cidadeId)
+      .eq("cidadeID", cidadeId)
       .order("created_at", { ascending: false });
 
     if (comentariosError) {
@@ -60,7 +60,7 @@ exports.listarPorCidade = async (req, res) => {
     }
 
     const { data: usuarios, error: usuariosError } = await supabase
-      .from("usuarios")
+      .from("Users")
       .select("id, nome")
       .in("id", userIds);
 
@@ -100,7 +100,7 @@ exports.editar = async (req, res) => {
     const { mensagem } = req.body;
 
     const { data, error } = await supabase
-      .from("comentarios")
+      .from("Comentarios")
       .update({ mensagem })
       .eq("id", id)
       .select();
@@ -122,7 +122,7 @@ exports.deletar = async (req, res) => {
     const { id } = req.params;
 
     const { error } = await supabase
-      .from("comentarios")
+      .from("Comentarios")
       .delete()
       .eq("id", id);
 
