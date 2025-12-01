@@ -9,6 +9,9 @@ import InfoCarousel from "../components/destinations/InfoCarousel";
 import { api } from "../services/api";
 import { LeafletMap } from "../components/map/MapLeaflet";
 import 'leaflet/dist/leaflet.css';
+import { GoHeart, GoHeartFill } from "react-icons/go";
+import { useAuth } from "../context/AuthContext";
+
 
 interface Destino { 
   id: string;
@@ -55,6 +58,8 @@ const DestinationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [destino, setDestino] = useState<Destino | null>(null);
 
+  const [isFavorited, setIsFavorited] = useState(false);
+
   const [comoChegar, setComoChegar] = useState<ComoChegarItem[]>([]);
   const [pontosTuristicos, setPontosTuristicos] = useState<CarouselItem[]>([]);
   const [atividades, setAtividades] = useState<CarouselItem[]>([]);
@@ -64,13 +69,42 @@ const DestinationDetailPage: React.FC = () => {
   const [newCommentText, setNewCommentText] = useState('');
   const [commentError, setCommentError] = useState('');
 
-  // Substitua pela lógica real de autenticação (Context API, etc.)
-  const [session, setSession] = useState<{ user: { id: string } } | null>({ user: { id: "a9a8b8e4-3b7b-4b4f-8b3b-5b3b3b3b3b3b" } });
+  const { user, isAuthenticated } = useAuth();
 
   const [coordinates, setCoordinates] = useState<[number, number] | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleFavoriteClick = async () => {
+    if (!isAuthenticated || !user) {
+      alert("Você precisa estar logado para favoritar um destino.");
+      return;
+    }
+  
+    if (!id) return;
+
+    const cidadeID = parseInt(id, 10);
+    const currentUserID = user.id;
+  
+    const payload = {
+      userID: currentUserID,
+      cidadeID: cidadeID,
+    };
+    
+    try {
+      if (isFavorited) {
+        await api.delete("/favoritos/remove", { data: payload });
+        setIsFavorited(false);
+      } else {
+        await api.post("/favoritos/add", payload);
+        setIsFavorited(true);
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar favorito:", err);
+      alert("Não foi possível atualizar o status de favorito. Tente novamente.");
+    }
+  };
 
   // Função para buscar comentários
   const fetchComments = useCallback(async () => {
@@ -82,43 +116,65 @@ const DestinationDetailPage: React.FC = () => {
       console.error("Erro ao buscar comentários:", error);
     }
   }, [id]);
+  
+  // Verifica se o destino está favoritado ao carregar a página
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (isAuthenticated && user && id) {
+        try {
+          const response = await api.get(`/favoritos/${user.id}`);
+          const favoriteIds = response.data.map((fav: { cidadeID: number }) => fav.cidadeID);
+          if (favoriteIds.includes(parseInt(id, 10))) {
+            setIsFavorited(true);
+          } else {
+            setIsFavorited(false);
+          }
+        } catch (err) {
+          console.error("Erro ao verificar status de favorito:", err);
+        }
+      } else {
+        setIsFavorited(false); // Garante que o estado é falso se o usuário não estiver logado
+      }
+    };
+    checkFavoriteStatus();
+  }, [id, user, isAuthenticated]);
 
   // Busca o destino pelo ID vindo da URL
   useEffect(() => {
     async function fetchDestino() {
+      if (!id) return;
+
       try {
-        //Busca dados do destino
+        // Busca dados do destino
         const response = await api.get(`/cidades/${id}`);
         const destinoData = response.data;
-        // console.log("Destino carregado:", response.data);
-        setDestino(response.data);
-        
+        setDestino(destinoData);    
+
         //Busca dados de como chegar
         const comoChegarResponse = await api.get(`/como-chegar/${id}`);
-        // console.log("Como Chegar carregado:", comoChegarResponse.data);
         setComoChegar(comoChegarResponse.data);
         
         //Busca dados de pontos turísticos
-        const pontosTuristicosResponse = await api.get(`/pontos/${id}`);
+        const pontosTuristicosResponse = await api.get(`/pontos/${id ?? ""}`);
         // console.log("Pontos Turísticos carregados:", pontosTuristicosResponse.data);
         setPontosTuristicos(pontosTuristicosResponse.data);
         
         //Busca dados de atividades
-        const atividadesResponse = await api.get(`/atividades/${id}`);
+        const atividadesResponse = await api.get(`/atividades/${id ?? ""}`);
         // console.log("Atividades carregadas:", atividadesResponse.data);
         setAtividades(atividadesResponse.data);
         
         //Busca dados de dicas
-        const dicasResponse = await api.get(`/dicas/${id}`);
+        const dicasResponse = await api.get(`/dicas/${id ?? ""}`);
         // console.log("Dicas carregadas:", dicasResponse.data);
         setDicas(dicasResponse.data);
         
         await fetchComments();
 
-       // Define coordenadas vindo do backend
-      if (destinoData.latitude && destinoData.longitude) {
-        setCoordinates([destinoData.latitude, destinoData.longitude]);
-      }
+        // Define coordenadas vindo do backend
+        if (destinoData.latitude && destinoData.longitude) {
+          setCoordinates([destinoData.latitude, destinoData.longitude]);
+        }
 
       } catch (err) {
         console.error("Erro ao buscar destino:", err);
@@ -168,7 +224,7 @@ const DestinationDetailPage: React.FC = () => {
    const handleCommentSubmit = async (e:  React.FormEvent) => {
     e.preventDefault();
 
-    if (!session || !session.user || !newCommentText.trim() || !id) {
+    if (!isAuthenticated || !session.user || !newCommentText.trim() || !id) {
       setCommentError('Você precisa estar logado e o comentário não pode ser vazio.');
       return;
     }
@@ -176,8 +232,8 @@ const DestinationDetailPage: React.FC = () => {
 
     try {
       await api.post('/comentarios', {
-          userId: session.user.id, // Corrigido para corresponder ao backend
-          cidadeId: parseInt(id, 10), // Corrigido para corresponder ao backend
+          userId: session.user.id, 
+          cidadeId: parseInt(id ?? "0", 10), 
           mensagem: newCommentText
       });
 
@@ -222,10 +278,19 @@ const DestinationDetailPage: React.FC = () => {
       </div>
 
       <div className="flex_area">
-        <p className="sugested_user">Rota sugerida por:</p>
-        <div className="user">
-          <FaUserCircle size={30} />
-          <p>{destino.usuario?.nomeCompleto || "Usuário anônimo"}</p>
+        <div style={{width:'200px'}}>
+          <p className="sugested_user">Rota sugerida por:</p>
+          <div className="user">
+            <FaUserCircle size={30} />
+            <p>{destino.usuario?.nomeCompleto || "Usuário anônimo"}</p>
+          </div>
+        </div>
+        <div onClick={handleFavoriteClick}>
+          {isFavorited ? (
+            <GoHeartFill size={30} />
+          ) : (
+            <GoHeart size={30}/>
+          )}
         </div>
       </div>
 
@@ -291,7 +356,7 @@ const DestinationDetailPage: React.FC = () => {
           <section className="container_feedbacks">
             <h2>Feedbacks</h2>
 
-            {session && session.user ? (
+            {isAuthenticated && user ? (
               <form onSubmit={handleCommentSubmit} className="commentForm">
                 <textarea
                   className="commentInput"
