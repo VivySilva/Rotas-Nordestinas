@@ -122,6 +122,7 @@
 .localization-grid{
   display: grid;
   grid-template-columns: 1fr 1fr; 
+  align-items: start;
 }
 
 .localization-grid, 
@@ -250,4 +251,15 @@
   line-height: 1.7; 
   color: var(--cor-texto); 
   margin: 0;
+}
+.map-section {
+  width: 100%;
+  min-height: 420px;
+}
+
+.map-section .leaflet-container {
+  height: 400px !important;
+  width: 100% !important;
+  border-radius: 10px;
+  margin-top: 10px;
 }

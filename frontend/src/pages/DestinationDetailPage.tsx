@@ -115,9 +115,10 @@ const DestinationDetailPage: React.FC = () => {
         
         await fetchComments();
 
-        if (destinoData && destinoData.nomeCidade && destinoData.estado?.nome) {
-          fetchCoordinates(destinoData.nomeCidade, destinoData.estado.nome);
-        }
+       // Define coordenadas vindo do backend
+      if (destinoData.latitude && destinoData.longitude) {
+        setCoordinates([destinoData.latitude, destinoData.longitude]);
+      }
 
       } catch (err) {
         console.error("Erro ao buscar destino:", err);
@@ -132,20 +133,20 @@ const DestinationDetailPage: React.FC = () => {
   }, [id, fetchComments]);
   
   // Função para obter a localização da cidade através da biblioteca Nominatim
-  const fetchCoordinates = async (cidade: string, estado: string) => {
-    try {
-      const query = `${cidade}, ${estado}, Brazil`;
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-      if (data && data.length > 0) {
-        setCoordinates([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
-      } else {
-        console.warn("A API de geocodificação não encontrou o local:", query);
-      }
-    } catch (error) {
-      console.error("Falha ao buscar coordenadas na API de geocodificação:", error);
-    }
-  };
+  // const fetchCoordinates = async (cidade: string, estado: string) => {
+  //   try {
+  //     const query = `${cidade}, ${estado}, Brazil`;
+  //     const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+  //     const data = await response.json();
+  //     if (data && data.length > 0) {
+  //       setCoordinates([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+  //     } else {
+  //       console.warn("A API de geocodificação não encontrou o local:", query);
+  //     }
+  //   } catch (error) {
+  //     console.error("Falha ao buscar coordenadas na API de geocodificação:", error);
+  //   }
+  // };
 
   // Função para renderizar cada item de "Como Chegar"
   const renderComoChegarItem = (item: ComoChegarItem) => (
@@ -175,9 +176,9 @@ const DestinationDetailPage: React.FC = () => {
 
     try {
       await api.post('/comentarios', {
-          mensagem: newCommentText,
           userId: session.user.id, // Corrigido para corresponder ao backend
-          cidadeId: parseInt(id, 10) // Corrigido para corresponder ao backend
+          cidadeId: parseInt(id, 10), // Corrigido para corresponder ao backend
+          mensagem: newCommentText
       });
 
       setNewCommentText('');
