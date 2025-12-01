@@ -118,9 +118,11 @@ const HomePage = () => {
         <FeaturesSection />
       </Container>
 
-      <div id="sobre">
-        <ValuesSection />
-      </div>
+      <Container>
+        <div id="sobre">
+          <ValuesSection />
+        </div>
+      </Container>
 
       <Container>
         <main className="home-content">
