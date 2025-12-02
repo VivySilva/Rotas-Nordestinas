@@ -45,7 +45,7 @@ interface CarouselItem {
 
 interface Users {
     id: string;
-    nomeCompleto: string;
+    nome: string;
 }
 
 interface Comentario {
@@ -226,7 +226,7 @@ const DestinationDetailPage: React.FC = () => {
    const handleCommentSubmit = async (e:  React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAuthenticated || !session.user || !newCommentText.trim() || !id) {
+    if (!isAuthenticated || !user || !newCommentText.trim() || !id) {
       setCommentError('Você precisa estar logado e o comentário não pode ser vazio.');
       return;
     }
@@ -234,16 +234,16 @@ const DestinationDetailPage: React.FC = () => {
 
     try {
       await api.post('/comentarios', {
-          userId: session.user.id, 
-          cidadeId: parseInt(id ?? "0", 10), 
+          userID: user.id, 
+          cidadeID: parseInt(id ?? "0", 10), 
           mensagem: newCommentText
       });
 
       setNewCommentText('');
       await fetchComments(); // Re-busca os comentários para exibir o novo
 
-    } catch (err) {
-      console.error('ERRO AO ADICIONAR COMENTÁRIO:', err);
+    } catch (err: any) {
+      console.error('ERRO AO ADICIONAR COMENTÁRIO:', err.response ? err.response.data : err);
       setCommentError('Erro ao adicionar comentário. Tente novamente.');
     }
   };
@@ -365,7 +365,7 @@ const DestinationDetailPage: React.FC = () => {
           <section className="container_feedbacks">
             <h2>Feedbacks</h2>
 
-            {/* {isAuthenticated && session.user ? (
+            {isAuthenticated && user ? (
               <form onSubmit={handleCommentSubmit} className="commentForm">
                 <textarea
                   className="commentInput"
@@ -382,7 +382,7 @@ const DestinationDetailPage: React.FC = () => {
               </form>
             ) : (
                 <p>Faça login para adicionar um comentário.</p>
-            )} */}
+            )}
 
             {comentarios?.length > 0 ? (
               comentarios.map((comentario) => (
@@ -390,7 +390,7 @@ const DestinationDetailPage: React.FC = () => {
                   <div className="info_user1">
                     <FaUserCircle size={45} />
                     <div>
-                      <h3>{comentario.usuario?.nomeCompleto || 'Usuário Anônimo'}</h3>
+                      <h3>{comentario.usuario?.nome || 'Usuário Anônimo'}</h3>
                       <span>{new Date(comentario.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
